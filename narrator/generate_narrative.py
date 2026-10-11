@@ -84,57 +84,61 @@ Ops should focus first on {seg['payment_method']} orders in Tier-{seg['city_tier
 
 
 def generate_scr_narrative(findings):
-    """Call Gemini. Always returns a dict: status, narrative, tokens (and message on error)."""
+    """Write the SCR narrative with Gemini and always return a dict (never raise).
+
+    Success: {"status": "success", "narrative": ..., "tokens": ...}
+    Error  : {"status": "error", "narrative": None, "message": ...}  -> caught below, and the
+    function then falls back to the offline template, so the caller always gets a narrative.
+    """
     api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        return {"status": "error", "narrative": None, "tokens": None,
-                "message": "GEMINI_API_KEY is not set"}
-    if genai is None:
-        return {"status": "error", "narrative": None, "tokens": None,
-                "message": "google-genai is not installed"}
-
-    prompt = build_prompt(findings)
     models = [os.environ["GEMINI_MODEL"]] if os.environ.get("GEMINI_MODEL") else MODEL_CANDIDATES
-    last_error = "no model tried"
-    try:
-        client = genai.Client(api_key=api_key)
-        for model_name in models:
-            try:
-                # temperature 0: factual report, same numbers and wording every run.
-                # max_output_tokens 4096: far above the 1024 minimum, so the text is never cut off
-                # (some models also spend output tokens on internal thinking).
-                # timeout is in MILLISECONDS (30000 = 30 seconds).
-                response = client.models.generate_content(
-                    model=model_name,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        system_instruction=SYSTEM_INSTRUCTION,
-                        temperature=0.0,
-                        max_output_tokens=4096,
-                        http_options=types.HttpOptions(timeout=30000),
-                    ),
-                )
-                if not response.text:
-                    last_error = f"{model_name}: empty response"
-                    continue
-                return {"status": "success", "narrative": response.text, "model": model_name,
-                        "tokens": response.usage_metadata.total_token_count}
-            except Exception as err:
-                # model missing (404), quota (429), overloaded (503)...: try the next one
-                last_error = f"{model_name}: {err}"
-    except Exception as err:
-        last_error = str(err)
-    return {"status": "error", "narrative": None, "tokens": None, "message": last_error}
 
+    if not api_key:
+        result = {"status": "error", "narrative": None, "message": "GEMINI_API_KEY is not set"}
+    elif genai is None:
+        result = {"status": "error", "narrative": None, "message": "google-genai is not installed"}
+    else:
+        prompt = build_prompt(findings)  # built from the findings, nothing hardcoded
+        result = {"status": "error", "narrative": None, "message": "no model tried"}
+        try:
+            client = genai.Client(api_key=api_key)
+            for model_name in models:
+                try:
+                    # temperature 0: this is a factual business report, so we want the same
+                    # numbers and wording every time and no creative guessing.
+                    # max_output_tokens 4096: far above the 1024 minimum so the text is never cut
+                    # off (some models also spend output tokens on internal thinking).
+                    # timeout is in MILLISECONDS (30000 = 30 seconds).
+                    response = client.models.generate_content(
+                        model=model_name,
+                        contents=prompt,
+                        config=types.GenerateContentConfig(
+                            system_instruction=SYSTEM_INSTRUCTION,
+                            temperature=0.0,
+                            max_output_tokens=4096,
+                            http_options=types.HttpOptions(timeout=30000),
+                        ),
+                    )
+                    if not response.text:
+                        result["message"] = f"{model_name}: empty response"
+                        continue
+                    result = {"status": "success", "narrative": response.text,
+                              "tokens": response.usage_metadata.total_token_count,
+                              "model": model_name}
+                    break
+                except Exception as err:
+                    # model missing (404), quota (429), overloaded (503)...: try the next one
+                    result = {"status": "error", "narrative": None,
+                              "message": f"{model_name}: {err}"}
+        except Exception as err:
+            result = {"status": "error", "narrative": None, "message": str(err)}
 
-def get_narrative(findings):
-    """Try Gemini first; on any error fall back to the offline template."""
-    result = generate_scr_narrative(findings)
-    if result["status"] == "success":
-        return result
-    print("Gemini not used:", result["message"])
-    print("Using the offline narrator instead.")
-    return generate_scr_narrative_offline(findings)
+    if result["status"] == "error":
+        # no key, or the API call failed: use the offline template (same dict shape)
+        print("Gemini not used:", result["message"])
+        print("Using the offline narrator instead.")
+        return generate_scr_narrative_offline(findings)
+    return result
 
 
 def number_in_text(value, text):
@@ -170,7 +174,7 @@ if __name__ == "__main__":
     with open(FINDINGS_PATH) as f:
         findings = json.load(f)
 
-    result = get_narrative(findings)
+    result = generate_scr_narrative(findings)
     print()
     print(result["narrative"])
     print()
