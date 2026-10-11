@@ -1,0 +1,8 @@
+### Situation
+Our core financial performance reflects a cleaned total revenue of Rs 97,358.30, adjusted from a raw total revenue before cleaning of Rs 99,860.20 after removing a difference caused by duplicate orders of Rs 2,501.90. Monthly sales analysis provides crucial clarity on true operational baselines: while January initially looked like the best month at Rs 29,582.10, this was heavily skewed by two bulk orders. Without them, January revenue was Rs 11,637.10, establishing March as the true peak month with Rs 20,318.90 in revenue.
+
+### Complication
+Fulfillment margins are heavily eroded by payment-method return dynamics. COD orders carry a massive return rate of 44.4%, whereas prepaid methods remain far lower—CARD stands at 14.7% and UPI at 18.9%. Most critical for operations, the highest risk segment across our network is COD orders in Tier-2 cities, which suffers from a severe return rate of 54.5%.
+
+### Resolution
+Regional ops and finance heads must focus immediate mitigation efforts on high-return channels. First, implement stricter address confirmation and phone verification for COD orders in Tier-2 cities to directly curb the 54.5% return rate. Second, incentivize customer migration to prepaid channels like UPI (18.9% return rate) and CARD (14.7% return rate) to replace volatile COD volume (44.4% return rate). Finally, calibrate quarterly inventory and logistics planning around March’s true peak baseline of Rs 20,318.90 rather than unadjusted bulk figures.
