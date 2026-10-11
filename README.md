@@ -86,7 +86,7 @@ export GEMINI_API_KEY="your_key_here"
 python narrator/generate_narrative.py
 ```
 
-If the key is missing or the Gemini call fails, the script automatically uses the offline version. The script then checks that the 5 important figures are in the text and prints PASS or FAIL for each. When Gemini works, the output is saved to `narrator/sample_output.txt` and checked as well.
+The script tries a short list of current Gemini models in order (Google retires old ones, and a 404 means a model is not available to your key). You can force one with GEMINI_MODEL. If the key is missing or every Gemini call fails, it uses the offline version. The script then checks that the 5 important figures are in the text and prints PASS or FAIL for each. When Gemini works, the output is saved to `narrator/sample_output.txt` and checked as well.
 
 ## How the three parts connect
 
